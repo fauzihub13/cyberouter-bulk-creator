@@ -16,7 +16,7 @@
  * @module inbox/tempmail
  */
 
-import { log } from "../utils/logger.mjs";
+import { log, color } from "../utils/logger.mjs";
 
 export const TEMPMAIL = "https://tempmail.cloud";
 
@@ -59,6 +59,7 @@ async function ensureSession(request) {
  * @returns {Promise<{email:string, local:string, domain:string, token:string}>}
  */
 export async function createInbox(request, opts = {}) {
+  log.step(`${color.magenta("✉")} ${color.dim("creating tempmail inbox")}`);
   await ensureSession(request);
 
   const body = {};
@@ -125,7 +126,9 @@ export async function waitForCode(request, token, opts = {}) {
   const pollInterval = opts.pollInterval ?? 3000;
   const deadline = Date.now() + timeout;
 
-  log.step("waiting for the Cyberouter sign-in email");
+log.step(`${color.magenta("✉")} ${color.dim("waiting for the Cyberouter sign-in email")}`);
+  const startedPoll = Date.now();
+  let waited = 0;
   while (Date.now() < deadline) {
     const res = await request
       .get(`${TEMPMAIL}/api/messages?limit=20`, { headers: headers(token) })
@@ -149,6 +152,11 @@ export async function waitForCode(request, token, opts = {}) {
           }
         }
       }
+    }
+
+    waited = Math.round((Date.now() - startedPoll) / 1000);
+    if (waited > 0 && waited % 15 === 0) {
+      log.info(color.dim(`still waiting for the email… ${waited}s`));
     }
     await new Promise((r) => setTimeout(r, pollInterval));
   }

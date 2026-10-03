@@ -18,7 +18,7 @@
  * @module cyberouter/client
  */
 
-import { log } from "../utils/logger.mjs";
+import { log, color } from "../utils/logger.mjs";
 import { solveTurnstile } from "../utils/capsolver.mjs";
 
 export const CYBEROUTER = "https://router.enclave.ai";
@@ -65,6 +65,7 @@ export async function requestCode(page, email, opts = {}) {
   await page.fill('input[name="email"]', email);
 
   const siteKey = await readSiteKey(page);
+  log.step(`${color.dim("solving turnstile")} ${color.dim(`sitekey=${siteKey.slice(0, 12)}…`)}`);
   const token = await solveTurnstile({
     clientKey: opts.capsolverKey,
     websiteURL: `${CYBEROUTER}/login`,
@@ -72,7 +73,7 @@ export async function requestCode(page, email, opts = {}) {
     action: opts.turnstileAction || "login",
     timeout: opts.turnstileTimeout ?? 120000,
   });
-  log.info("turnstile solved via capsolver");
+  log.ok(color.dim("turnstile solved via capsolver"));
 
   const injected = await page.evaluate((t) => {
     const input = document.querySelector('input[name="cf-turnstile-response"]');
@@ -98,7 +99,7 @@ export async function requestCode(page, email, opts = {}) {
   if (!/check your email|sign-in code/i.test(text)) {
     throw new Error(`code request did not reach the code step: ${text.slice(0, 160)}`);
   }
-  log.info("sign-in code requested");
+  log.ok(color.dim("sign-in code requested"));
 }
 
 /**
@@ -109,10 +110,10 @@ export async function requestCode(page, email, opts = {}) {
  * @param {string} code
  */
 export async function submitCode(page, email, code) {
+  log.step(color.dim("submitting code + signing in"));
   const state = await readFormState(page);
   const csrf = state.csrf;
   if (!csrf) throw new Error("no csrf_token found on the code step");
-
   await page.locator('input[name="code"]').waitFor({ state: "visible", timeout: 30000 });
   await page.fill('input[name="code"]', code);
   await Promise.all([
@@ -129,7 +130,7 @@ export async function submitCode(page, email, code) {
   if (!/Overview|API Keys|Credits|Playground/i.test(text) && url.includes("/login")) {
     throw new Error("sign-in did not establish a session");
   }
-  log.ok("signed in");
+  log.ok(color.bold(color.green("signed in")));
 }
 
 /**
@@ -140,6 +141,7 @@ export async function submitCode(page, email, code) {
  * @returns {Promise<string>} the `sk-cyberouter_...` key
  */
 export async function createApiKey(page, name) {
+  log.step(`${color.dim("creating API key")} ${color.dim(`name=${name}`)}`);
   await page.goto(`${CYBEROUTER}/keys`, { waitUntil: "domcontentloaded", timeout: 60000 });
   const keyInput = page.locator('input[name="name"]');
   await keyInput.waitFor({ state: "visible", timeout: 30000 });
@@ -157,6 +159,6 @@ export async function createApiKey(page, name) {
     return m ? m[0] : null;
   });
   if (!key) throw new Error("API key was not shown after creation");
-  log.ok("API key created");
+  log.ok(color.bold(color.green(`API key created`)) + "  " + color.dim(key));
   return key;
 }

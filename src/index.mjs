@@ -113,9 +113,11 @@ async function doctor() {
   }
 
   let allOk = true;
+  log.banner(color.cyan("doctor"));
   for (const [name, ok, detail] of checks) {
     if (!ok) allOk = false;
-    log.raw(`${ok ? color.green("✔") : color.red("✘")} ${name}  ${color.dim(detail)}`);
+    const mark = ok ? color.green("✔") : color.red("✘");
+    process.stdout.write(`${mark} ${color.white(name.padEnd(22))} ${color.dim(detail)}\n`);
   }
   process.exit(allOk ? 0 : 1);
 }
@@ -143,13 +145,20 @@ async function main() {
     process.exit(2);
   }
 
-  log.raw(color.cyan("cyberouter-bulk-creator") + color.dim(` v${VERSION}`));
-  log.info(
-    `accounts=${opts.count}  concurrency=${opts.concurrency}  retries=${opts.retries}  out=${outFile}`,
+  log.banner(
+    color.cyan("◆ cyberouter-bulk-creator") + color.dim(`  v${VERSION}`),
   );
-  log.info(`domain=${opts.domain || "(tempmail default)"}`);
-  log.info(proxy ? `proxy: ${proxy.server}` : "proxy: none (direct)");
-  log.info(`success log: ${resultsJson} + ${resultsTxt}`);
+  log.kv({
+    accounts: opts.count,
+    concurrency: opts.concurrency,
+    retries: opts.retries,
+    domain: opts.domain || "tempmail default",
+    out: outFile,
+  });
+  log.kv({
+    proxy: proxy ? proxy.server : "none (direct)",
+    results: `${resultsJson} + ${resultsTxt}`,
+  });
 
   // Durable success-only store, appended on every successful account.
   const successes = await loadResults(resultsJson);
@@ -183,7 +192,14 @@ async function main() {
   const request = platformContext.request;
 
   const bal = await capsolverBalance(opts.capsolverKey);
-  if (bal !== null) log.info(`capsolver balance: $${bal}`);
+  if (bal !== null) {
+    const low = bal < 0.05;
+    log.info(
+      `${color.dim("capsolver balance")} ${
+        low ? color.red(`$${bal}`) + color.yellow("  (low — top up soon)") : color.green(`$${bal}`)
+      }`,
+    );
+  }
 
   const results = [];
   const flush = async () => writeFile(outFile, JSON.stringify(results.filter(Boolean), null, 2));
@@ -193,7 +209,7 @@ async function main() {
     while (true) {
       const i = next++;
       if (i >= opts.count) return;
-      if (!opts.quiet) log.raw(color.dim(`\n── account ${i + 1}/${opts.count} ──`));
+      if (!opts.quiet) log.section(`account ${i + 1}/${opts.count}`);
       const r = await provisionOne(platformContext, request, {
         domain: opts.domain || undefined,
         timeout: opts.timeout,
@@ -219,12 +235,27 @@ async function main() {
   }
 
   const ok = results.filter((r) => r?.ok).length;
+  const total = results.filter(Boolean).length || 0;
+  const allOk = ok === opts.count && total === opts.count;
   log.raw("");
-  log.info(`done: ${ok}/${results.filter(Boolean).length || 0} succeeded -> ${outFile}`);
+  log.banner(
+    `${allOk ? color.green("✔ all succeeded") : color.yellow("⚠ finished")}  ` +
+      `${color.bold(`${ok}/${total}`)} ${color.dim("accounts")}  ` +
+      `${color.dim("→")} ${color.cyan(outFile)}`,
+  );
   for (const r of results.filter(Boolean)) {
-    if (r.ok) log.raw(`  ${color.green("✔")} ${r.email}  ${color.dim(`key=${r.api_key}`)}`);
-    else log.raw(`  ${color.red("✘")} ${r.email || "?"}  ${color.dim(`${r.error_kind}: ${r.error}`)}`);
+    if (r.ok) {
+      log.success(
+        `${color.white(r.email)}  ${color.dim("key=")}${color.green(r.api_key)}  ` +
+          color.dim(`(${(r.elapsed_ms / 1000).toFixed(1)}s)`),
+      );
+    } else {
+      log.failure(
+        `${color.white(r.email || "?")}  ${color.dim(`${r.error_kind}:`)} ${color.red(r.error)}`,
+      );
+    }
   }
+  if (ok > 0) log.info(color.dim(`saved success log → ${resultsJson} + ${resultsTxt}`));
   process.exit(ok === opts.count ? 0 : 1);
 }
 

@@ -12,7 +12,7 @@
 import * as cyber from "../cyberouter/client.mjs";
 import { createInbox, waitForCode } from "../inbox/tempmail.mjs";
 import { randomKeyName } from "../utils/random.mjs";
-import { log } from "../utils/logger.mjs";
+import { log, color } from "../utils/logger.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -46,12 +46,13 @@ async function attempt(platformContext, request, opts, attemptNo) {
       localPart: opts.localPart || undefined,
     });
     const { email, domain, token } = inbox;
-    log.step(`[try ${attemptNo}] provisioning ${email}`);
+    const tryLabel = attemptNo > 1 ? color.yellow(`try ${attemptNo}`) : color.cyan("try 1");
+    log.step(`${tryLabel} ${color.dim("provisioning")} ${color.white(email)}`);
 
     await cyber.requestCode(platformPage, email, opts);
 
     const code = await waitForCode(request, token, { timeout: opts.timeout });
-    log.info(`code received: ${code}`);
+    log.ok(`${color.dim("code received")} ${color.bold(color.green(code))}`);
 
     await cyber.submitCode(platformPage, email, code);
     const apiKey = await cyber.createApiKey(platformPage, keyName);
@@ -96,12 +97,15 @@ export async function provisionOne(platformContext, request, opts = {}) {
     if (last.ok) return last;
 
     if (last.error_kind === "rate-limit") {
-      log.warn("rate limit hit — aborting retries for this account");
+      log.warn(color.yellow("rate limit hit") + color.dim(" — aborting retries for this account"));
       return last;
     }
     if (i <= retries) {
       const backoff = Math.min(8000 * i, 30000);
-      log.warn(`attempt ${i} failed (${last.error_kind}); retrying in ${backoff}ms`);
+      log.warn(
+        `${color.yellow(`attempt ${i} failed`)} ${color.dim(`(${last.error_kind})`)} ` +
+          color.dim(`retrying in ${backoff}ms`),
+      );
       await sleep(backoff);
     }
   }
