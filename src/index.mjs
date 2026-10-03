@@ -68,7 +68,6 @@ function help() {
   Options:
     -n, --count N               number of accounts              (default 1)
     -d, --domain D              blipmail receiving domain       (default: any)
-    -o, --out FILE              output JSON file                (default cyberouter-accounts-<ts>.json)
         --results-json FILE     append successful accounts here  (default results.json)
         --results-txt FILE      append email|apikey here         (default results.txt)
     -t, --timeout MS            max wait for the sign-in email  (default 180000)
@@ -134,8 +133,6 @@ async function main() {
   if (opts.version) return log.raw(VERSION);
   if (opts.doctor) return doctor();
 
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const outFile = opts.out || `cyberouter-accounts-${stamp}.json`;
   const resultsJson = opts.resultsJson || "results.json";
   const resultsTxt = opts.resultsTxt || "results.txt";
   const proxy = parseProxy(opts.proxy);
@@ -153,7 +150,6 @@ async function main() {
     concurrency: opts.concurrency,
     retries: opts.retries,
     domain: opts.domain || "blipmail default",
-    out: outFile,
   });
   log.kv({
     proxy: proxy ? proxy.server : "none (direct)",
@@ -202,7 +198,6 @@ async function main() {
   }
 
   const results = [];
-  const flush = async () => writeFile(outFile, JSON.stringify(results.filter(Boolean), null, 2));
 
   let next = 0;
   async function worker(id) {
@@ -220,7 +215,6 @@ async function main() {
         keyNamePattern: opts.keyNamePattern,
       });
       results[i] = r;
-      await flush();
       if (r.ok) await recordSuccess(r);
     }
   }
@@ -240,8 +234,7 @@ async function main() {
   log.raw("");
   log.banner(
     `${allOk ? color.green("✔ all succeeded") : color.yellow("⚠ finished")}  ` +
-      `${color.bold(`${ok}/${total}`)} ${color.dim("accounts")}  ` +
-      `${color.dim("→")} ${color.cyan(outFile)}`,
+      `${color.bold(`${ok}/${total}`)} ${color.dim("accounts")}`,
   );
   for (const r of results.filter(Boolean)) {
     if (r.ok) {

@@ -52,24 +52,7 @@ node src/index.mjs
 node src/index.mjs -n 5 --concurrency 2
 ```
 
-El resultado se escribe en `cyberouter-accounts-<timestamp>.json`:
-
-```json
-[
-  {
-    "ok": true,
-    "email": "langitbiru23@mpruy.my.id",
-    "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "key_name": "prod-token-7421",
-    "email_provider": "BlipMail (mpruy.my.id)",
-    "elapsed_ms": 19579,
-    "created_at": "2026-10-03T00:00:00.000Z"
-  }
-]
-```
-
-Las cuentas exitosas también se añaden, a medida que se crean, a dos archivos
-persistentes (ambos en git-ignore):
+Las cuentas exitosas se añaden, a medida que se crean, a dos archivos persistentes (ambos en git-ignore). No hay archivo de salida por ejecución.
 
 `results.json` — un array JSON creciente de objetos de cuenta exitosa:
 
@@ -97,7 +80,6 @@ langitbiru23@mpruy.my.id|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 |--------|-------------|-------------|
 | `-n, --count N` | número de cuentas | `1` |
 | `-d, --domain D` | dominio receptor de blipmail | por defecto de blipmail |
-| `-o, --out FILE` | archivo JSON de salida | `cyberouter-accounts-<ts>.json` |
 | `--results-json FILE` | añadir cuentas exitosas (array JSON) | `results.json` |
 | `--results-txt FILE` | añadir `email|api_key` por éxito | `results.txt` |
 | `-t, --timeout MS` | espera máxima del correo | `180000` |

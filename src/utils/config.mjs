@@ -46,7 +46,6 @@ export function buildOptions(argv, env = process.env) {
   const opts = {
     count: asInt(cfg.CYBEROUTER_COUNT, 1),
     domain: cfg.CYBEROUTER_DOMAIN || null,
-    out: null,
     resultsJson: cfg.CYBEROUTER_RESULTS_JSON || "results.json",
     resultsTxt: cfg.CYBEROUTER_RESULTS_TXT || "results.txt",
     timeout: asInt(cfg.CYBEROUTER_TIMEOUT, 180000),
@@ -74,7 +73,6 @@ export function buildOptions(argv, env = process.env) {
     const k = argv[i];
     if (k === "-n" || k === "--count") (opts.count = parseInt(need(i, k), 10)), i++;
     else if (k === "-d" || k === "--domain") (opts.domain = need(i, k)), i++;
-    else if (k === "-o" || k === "--out") (opts.out = need(i, k)), i++;
     else if (k === "--results-json") (opts.resultsJson = need(i, k)), i++;
     else if (k === "--results-txt") (opts.resultsTxt = need(i, k)), i++;
     else if (k === "-t" || k === "--timeout") (opts.timeout = parseInt(need(i, k), 10)), i++;

@@ -51,23 +51,7 @@ node src/index.mjs
 node src/index.mjs -n 5 --concurrency 2
 ```
 
-结果输出到 `cyberouter-accounts-<timestamp>.json`：
-
-```json
-[
-  {
-    "ok": true,
-    "email": "langitbiru23@mpruy.my.id",
-    "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "key_name": "prod-token-7421",
-    "email_provider": "BlipMail (mpruy.my.id)",
-    "elapsed_ms": 19579,
-    "created_at": "2026-10-03T00:00:00.000Z"
-  }
-]
-```
-
-成功账户创建后也会立即追加到两个持久文件(均被 git 忽略):
+成功账户创建后立即追加到两个持久文件(均被 git 忽略)。没有每次运行的输出文件。
 
 `results.json` — 持续增长的 JSON 数组,存放成功账户对象:
 
@@ -95,7 +79,6 @@ langitbiru23@mpruy.my.id|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 |------|------|--------|
 | `-n, --count N` | 账户数量 | `1` |
 | `-d, --domain D` | blipmail 收件域名 | blipmail 默认 |
-| `-o, --out FILE` | 输出 JSON 文件 | `cyberouter-accounts-<ts>.json` |
 | `--results-json FILE` | 追加成功账户(JSON 数组) | `results.json` |
 | `--results-txt FILE` | 每次成功追加 `email|api_key` | `results.txt` |
 | `-t, --timeout MS` | 等待验证邮件的上限 | `180000` |

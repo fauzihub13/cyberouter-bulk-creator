@@ -52,24 +52,7 @@ node src/index.mjs
 node src/index.mjs -n 5 --concurrency 2
 ```
 
-Hasil tersimpan di `cyberouter-accounts-<timestamp>.json`:
-
-```json
-[
-  {
-    "ok": true,
-    "email": "langitbiru23@mpruy.my.id",
-    "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "key_name": "prod-token-7421",
-    "email_provider": "BlipMail (mpruy.my.id)",
-    "elapsed_ms": 19579,
-    "created_at": "2026-10-03T00:00:00.000Z"
-  }
-]
-```
-
-Akun yang berhasil juga di-append, begitu dibuat, ke dua file permanen
-(keduanya di-git-ignore):
+Akun yang berhasil di-append, begitu dibuat, ke dua file permanen (keduanya di-git-ignore). Tidak ada file output per-run.
 
 `results.json` — array JSON akun sukses yang terus bertambah:
 
@@ -97,7 +80,6 @@ langitbiru23@mpruy.my.id|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 |------|------------|---------|
 | `-n, --count N` | jumlah akun | `1` |
 | `-d, --domain D` | domain penerima blipmail | default blipmail |
-| `-o, --out FILE` | file JSON keluaran | `cyberouter-accounts-<ts>.json` |
 | `--results-json FILE` | append akun sukses (array JSON) | `results.json` |
 | `--results-txt FILE` | append `email\|api_key` tiap sukses | `results.txt` |
 | `-t, --timeout MS` | batas tunggu email masuk | `180000` |
