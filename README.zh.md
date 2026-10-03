@@ -67,6 +67,28 @@ node src/index.mjs -n 5 --concurrency 2
 ]
 ```
 
+成功账户创建后也会立即追加到两个持久文件(均被 git 忽略):
+
+`results.json` — 持续增长的 JSON 数组,存放成功账户对象:
+
+```json
+[
+  {
+    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "key_name": "prod-token-7421",
+    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "created_at": "2026-10-03T00:00:00.000Z"
+  }
+]
+```
+
+`results.txt` — 每次成功一行 `email|api_key`:
+
+```
+bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
 ## 命令行参数
 
 | 参数 | 说明 | 默认值 |
@@ -74,6 +96,8 @@ node src/index.mjs -n 5 --concurrency 2
 | `-n, --count N` | 账户数量 | `1` |
 | `-d, --domain D` | tempmail 收件域名 | tempmail 默认 |
 | `-o, --out FILE` | 输出 JSON 文件 | `cyberouter-accounts-<ts>.json` |
+| `--results-json FILE` | 追加成功账户(JSON 数组) | `results.json` |
+| `--results-txt FILE` | 每次成功追加 `email|api_key` | `results.txt` |
 | `-t, --timeout MS` | 等待验证邮件的上限 | `180000` |
 | `--turnstile-timeout MS` | 等待 CapSolver 的上限 | `120000` |
 | `--retries N` | 每个账户的重试次数 | `3` |
@@ -99,6 +123,8 @@ CYBEROUTER_CONCURRENCY=1
 CYBEROUTER_RETRIES=3
 CYBEROUTER_TIMEOUT=180000
 CYBEROUTER_TURNSTILE_TIMEOUT=120000
+CYBEROUTER_RESULTS_JSON=results.json
+CYBEROUTER_RESULTS_TXT=results.txt
 CYBEROUTER_PROXY=
 ```
 

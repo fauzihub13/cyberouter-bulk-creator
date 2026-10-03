@@ -68,6 +68,29 @@ node src/index.mjs -n 5 --concurrency 2
 ]
 ```
 
+成功したアカウントは、作成され次第、2 つの永続ファイルにも追記されます
+(どちらも git-ignore 済み):
+
+`results.json` — 成功したアカウントオブジェクトの増え続ける JSON 配列:
+
+```json
+[
+  {
+    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "key_name": "prod-token-7421",
+    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "created_at": "2026-10-03T00:00:00.000Z"
+  }
+]
+```
+
+`results.txt` — 成功ごとに 1 行の `email|api_key`:
+
+```
+bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
 ## CLI
 
 | オプション | 説明 | 既定値 |
@@ -75,6 +98,8 @@ node src/index.mjs -n 5 --concurrency 2
 | `-n, --count N` | アカウント数 | `1` |
 | `-d, --domain D` | tempmail の受信ドメイン | tempmail 既定 |
 | `-o, --out FILE` | 出力 JSON | `cyberouter-accounts-<ts>.json` |
+| `--results-json FILE` | 成功したアカウントを追加(JSON 配列) | `results.json` |
+| `--results-txt FILE` | 成功ごとに `email|api_key` を追加 | `results.txt` |
 | `-t, --timeout MS` | メール待ちの上限 | `180000` |
 | `--turnstile-timeout MS` | CapSolver 待ちの上限 | `120000` |
 | `--retries N` | アカウントごとの再試行 | `3` |
@@ -100,6 +125,8 @@ CYBEROUTER_CONCURRENCY=1
 CYBEROUTER_RETRIES=3
 CYBEROUTER_TIMEOUT=180000
 CYBEROUTER_TURNSTILE_TIMEOUT=120000
+CYBEROUTER_RESULTS_JSON=results.json
+CYBEROUTER_RESULTS_TXT=results.txt
 CYBEROUTER_PROXY=
 ```
 

@@ -11,6 +11,8 @@ build/
 # Output artifacts — these contain live credentials. Never commit them.
 cyberouter-accounts-*.json
 accounts.json
+results.json
+results.txt
 *.local.json
 output/
 

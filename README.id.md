@@ -68,6 +68,29 @@ Hasil tersimpan di `cyberouter-accounts-<timestamp>.json`:
 ]
 ```
 
+Akun yang berhasil juga di-append, begitu dibuat, ke dua file permanen
+(keduanya di-git-ignore):
+
+`results.json` — array JSON akun sukses yang terus bertambah:
+
+```json
+[
+  {
+    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "key_name": "prod-token-7421",
+    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "created_at": "2026-10-03T00:00:00.000Z"
+  }
+]
+```
+
+`results.txt` — satu baris `email|api_key` per sukses:
+
+```
+bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
 ## CLI
 
 | Flag | Keterangan | Default |
@@ -75,6 +98,8 @@ Hasil tersimpan di `cyberouter-accounts-<timestamp>.json`:
 | `-n, --count N` | jumlah akun | `1` |
 | `-d, --domain D` | domain penerima tempmail | default tempmail |
 | `-o, --out FILE` | file JSON keluaran | `cyberouter-accounts-<ts>.json` |
+| `--results-json FILE` | append akun sukses (array JSON) | `results.json` |
+| `--results-txt FILE` | append `email\|api_key` tiap sukses | `results.txt` |
 | `-t, --timeout MS` | batas tunggu email masuk | `180000` |
 | `--turnstile-timeout MS` | batas tunggu CapSolver | `120000` |
 | `--retries N` | percobaan ulang per akun | `3` |
@@ -100,6 +125,8 @@ CYBEROUTER_CONCURRENCY=1
 CYBEROUTER_RETRIES=3
 CYBEROUTER_TIMEOUT=180000
 CYBEROUTER_TURNSTILE_TIMEOUT=120000
+CYBEROUTER_RESULTS_JSON=results.json
+CYBEROUTER_RESULTS_TXT=results.txt
 CYBEROUTER_PROXY=
 ```
 

@@ -68,6 +68,29 @@ El resultado se escribe en `cyberouter-accounts-<timestamp>.json`:
 ]
 ```
 
+Las cuentas exitosas también se añaden, a medida que se crean, a dos archivos
+persistentes (ambos en git-ignore):
+
+`results.json` — un array JSON creciente de objetos de cuenta exitosa:
+
+```json
+[
+  {
+    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "key_name": "prod-token-7421",
+    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "created_at": "2026-10-03T00:00:00.000Z"
+  }
+]
+```
+
+`results.txt` — una línea `email|api_key` por éxito:
+
+```
+bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
 ## CLI
 
 | Opción | Descripción | Por defecto |
@@ -75,6 +98,8 @@ El resultado se escribe en `cyberouter-accounts-<timestamp>.json`:
 | `-n, --count N` | número de cuentas | `1` |
 | `-d, --domain D` | dominio receptor de tempmail | por defecto de tempmail |
 | `-o, --out FILE` | archivo JSON de salida | `cyberouter-accounts-<ts>.json` |
+| `--results-json FILE` | añadir cuentas exitosas (array JSON) | `results.json` |
+| `--results-txt FILE` | añadir `email|api_key` por éxito | `results.txt` |
 | `-t, --timeout MS` | espera máxima del correo | `180000` |
 | `--turnstile-timeout MS` | espera máxima de CapSolver | `120000` |
 | `--retries N` | reintentos por cuenta | `3` |
@@ -100,6 +125,8 @@ CYBEROUTER_CONCURRENCY=1
 CYBEROUTER_RETRIES=3
 CYBEROUTER_TIMEOUT=180000
 CYBEROUTER_TURNSTILE_TIMEOUT=120000
+CYBEROUTER_RESULTS_JSON=results.json
+CYBEROUTER_RESULTS_TXT=results.txt
 CYBEROUTER_PROXY=
 ```
 

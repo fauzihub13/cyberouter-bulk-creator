@@ -12,11 +12,30 @@
  * @module index
  */
 
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile, appendFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { provisionOne } from "./core/provision.mjs";
 import { buildOptions, parseProxy } from "./utils/config.mjs";
 import { balance as capsolverBalance } from "./utils/capsolver.mjs";
 import { log, color } from "./utils/logger.mjs";
+
+/** Serialize file writes so concurrent workers never interleave appends. */
+let writeQueue = Promise.resolve();
+function enqueue(task) {
+  writeQueue = writeQueue.then(task, task);
+  return writeQueue;
+}
+
+/** Load an existing results JSON array, tolerating a missing/corrupt file. */
+async function loadResults(path) {
+  if (!existsSync(path)) return [];
+  try {
+    const parsed = JSON.parse(await readFile(path, "utf8"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Load Playwright lazily so `--help`, `--version` and `--doctor` work even
@@ -50,6 +69,8 @@ function help() {
     -n, --count N               number of accounts              (default 1)
     -d, --domain D              tempmail receiving domain       (default: any)
     -o, --out FILE              output JSON file                (default cyberouter-accounts-<ts>.json)
+        --results-json FILE     append successful accounts here  (default results.json)
+        --results-txt FILE      append email|apikey here         (default results.txt)
     -t, --timeout MS            max wait for the sign-in email  (default 180000)
         --turnstile-timeout MS  max wait for CapSolver          (default 120000)
         --retries N             retries per account              (default 3)
@@ -113,6 +134,8 @@ async function main() {
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const outFile = opts.out || `cyberouter-accounts-${stamp}.json`;
+  const resultsJson = opts.resultsJson || "results.json";
+  const resultsTxt = opts.resultsTxt || "results.txt";
   const proxy = parseProxy(opts.proxy);
 
   if (!opts.capsolverKey) {
@@ -126,6 +149,22 @@ async function main() {
   );
   log.info(`domain=${opts.domain || "(tempmail default)"}`);
   log.info(proxy ? `proxy: ${proxy.server}` : "proxy: none (direct)");
+  log.info(`success log: ${resultsJson} + ${resultsTxt}`);
+
+  // Durable success-only store, appended on every successful account.
+  const successes = await loadResults(resultsJson);
+  const recordSuccess = (r) =>
+    enqueue(async () => {
+      successes.push({
+        email: r.email,
+        api_key: r.api_key,
+        key_name: r.key_name,
+        email_provider: r.email_provider,
+        created_at: r.created_at,
+      });
+      await writeFile(resultsJson, JSON.stringify(successes, null, 2));
+      await appendFile(resultsTxt, `${r.email}|${r.api_key}\n`);
+    });
 
   const { chromium } = await loadPlaywright();
   const browser = await chromium.launch({
@@ -166,6 +205,7 @@ async function main() {
       });
       results[i] = r;
       await flush();
+      if (r.ok) await recordSuccess(r);
     }
   }
 
