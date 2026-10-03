@@ -1,0 +1,34 @@
+cyberouter-bulk-creator
+========================
+
+GitHub repository description (paste into the "Description" field):
+
+    Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts
+    and API keys through zenvex.dev temporary inboxes. Playwright-driven, no CI.
+
+Short description (<= 350 chars, fits GitHub):
+
+    Bulk-provision Cyberouter (router.enclave.ai) accounts + sk-cyberouter API
+    keys end to end, using zenvex.dev temporary inboxes for email verification.
+    Real browser via Playwright. No CI, no roadmap, no releases.
+
+Topics (paste into "Topics", one per line or comma-separated):
+
+    cyberouter
+    enclave
+    router
+    automation
+    provisioning
+    api-key
+    account-creator
+    temporary-email
+    zenvex
+    playwright
+    nodejs
+    cli
+    bulk
+    cloudflare-turnstile
+
+Website (optional): leave empty.
+
+Related machine-readable copy: repo-metadata.json

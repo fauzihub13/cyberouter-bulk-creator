@@ -1,0 +1,54 @@
+{
+  "name": "cyberouter-bulk-creator",
+  "version": "1.0.0",
+  "description": "Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and API keys via zenvex.dev temporary inboxes.",
+  "type": "module",
+  "main": "src/index.mjs",
+  "bin": {
+    "cyberouter-bulk-creator": "src/index.mjs"
+  },
+  "files": [
+    "src",
+    "docs/assets",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node src/index.mjs",
+    "create": "node src/index.mjs -n 1",
+    "batch": "node src/index.mjs -n 5 --concurrency 2",
+    "doctor": "node src/index.mjs --doctor",
+    "postinstall": "playwright install chromium"
+  },
+  "keywords": [
+    "cyberouter",
+    "enclave",
+    "router",
+    "automation",
+    "provisioning",
+    "api-key",
+    "account-creator",
+    "temporary-email",
+    "zenvex",
+    "playwright",
+    "cli",
+    "bulk"
+  ],
+  "author": "cyberouter-bulk-creator contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/your-org/cyberouter-bulk-creator#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/cyberouter-bulk-creator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/cyberouter-bulk-creator/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "playwright": "1.47.2"
+  }
+}

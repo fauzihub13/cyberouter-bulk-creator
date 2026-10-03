@@ -1,0 +1,181 @@
+#!/usr/bin/env node
+/**
+ * cyberouter-bulk-creator — CLI entry point.
+ *
+ * Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and
+ * API keys, using zenvex.dev temporary inboxes for email verification.
+ *
+ * Exit codes: 0 = every requested account succeeded, 1 = at least one failed,
+ * 2 = bad arguments.
+ *
+ * @module index
+ */
+
+import { writeFile } from "node:fs/promises";
+import { provisionOne } from "./core/provision.mjs";
+import { buildOptions, parseProxy } from "./utils/config.mjs";
+import { log, color } from "./utils/logger.mjs";
+
+/**
+ * Load Playwright lazily so `--help`, `--version` and `--doctor` work even
+ * before `npm install`, and so the failure is a clear message rather than a
+ * module-resolution stack trace.
+ */
+async function loadPlaywright() {
+  try {
+    return await import("playwright");
+  } catch {
+    log.error(
+      "playwright is not installed — run `npm install` and " +
+        "`npx playwright install --with-deps chromium`",
+    );
+    process.exit(1);
+  }
+}
+
+const VERSION = "1.0.0";
+
+function help() {
+  process.stdout.write(`
+  ${color.bold("cyberouter-bulk-creator")} v${VERSION}
+
+  Bulk-provision Cyberouter (router.enclave.ai) accounts + API keys.
+
+  Usage:
+    node src/index.mjs [options]
+
+  Options:
+    -n, --count N               number of accounts              (default 1)
+    -d, --domain D              zenvex receiving domain         (default souss.dev)
+    -o, --out FILE              output JSON file                (default cyberouter-accounts-<ts>.json)
+    -t, --timeout MS            max wait for the sign-in email  (default 180000)
+        --turnstile-timeout MS  max wait for Cloudflare          (default 150000)
+        --retries N             retries per account              (default 3)
+        --concurrency N         accounts in parallel             (default 1)
+        --key-name NAME         fixed API-key name (default random)
+        --key-pattern PATTERN   random key pattern               (default "{adj}-{noun}-{num}")
+        --proxy URL             proxy for browser + requests     (or CYBEROUTER_PROXY)
+        --headful               show the browser
+        --keep-browser          leave the browser open at the end (debugging)
+    -q, --quiet                 print only the final summary
+        --doctor                check the environment and exit
+    -v, --version               print the version
+    -h, --help                  show this help
+
+  Examples:
+    node src/index.mjs
+    node src/index.mjs -n 5 --concurrency 2
+    node src/index.mjs -n 3 --proxy http://user:pass@host:port
+    CYBEROUTER_PROXY=socks5://127.0.0.1:1080 node src/index.mjs -n 2 --retries 5
+`);
+}
+
+/** Environment self-check for `--doctor`. */
+async function doctor() {
+  const checks = [];
+  const node = process.versions.node;
+  const major = parseInt(node.split(".")[0], 10);
+  checks.push(["node >= 18", major >= 18, `v${node}`]);
+
+  try {
+    const { chromium: c } = await loadPlaywright();
+    const b = await c.launch({ args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+    const page = await b.newPage();
+    await page.goto("about:blank");
+    await b.close();
+    checks.push(["playwright chromium", true, "launch ok"]);
+  } catch (e) {
+    checks.push(["playwright chromium", false, e.message.slice(0, 80)]);
+  }
+
+  let allOk = true;
+  for (const [name, ok, detail] of checks) {
+    if (!ok) allOk = false;
+    log.raw(`${ok ? color.green("✔") : color.red("✘")} ${name}  ${color.dim(detail)}`);
+  }
+  process.exit(allOk ? 0 : 1);
+}
+
+async function main() {
+  let opts;
+  try {
+    opts = buildOptions(process.argv);
+  } catch (e) {
+    log.error(e.message);
+    process.exit(2);
+  }
+  if (opts.help) return help();
+  if (opts.version) return log.raw(VERSION);
+  if (opts.doctor) return doctor();
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const outFile = opts.out || `cyberouter-accounts-${stamp}.json`;
+  const proxy = parseProxy(opts.proxy);
+
+  log.raw(color.cyan("cyberouter-bulk-creator") + color.dim(` v${VERSION}`));
+  log.info(
+    `accounts=${opts.count}  concurrency=${opts.concurrency}  retries=${opts.retries}  out=${outFile}`,
+  );
+  log.info(`domain=${opts.domain}`);
+  log.info(proxy ? `proxy: ${proxy.server}` : "proxy: none (direct)");
+
+  const { chromium } = await loadPlaywright();
+  const browser = await chromium.launch({
+    headless: !opts.headful,
+    args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    ...(proxy ? { proxy } : {}),
+  });
+
+  const baseContextOpts = {
+    locale: "en-US",
+    viewport: { width: 1366, height: 900 },
+    ...(proxy ? { proxy } : {}),
+  };
+  const platformContext = await browser.newContext(baseContextOpts);
+  const inboxContext = await browser.newContext(baseContextOpts);
+
+  const results = [];
+  const flush = async () => writeFile(outFile, JSON.stringify(results.filter(Boolean), null, 2));
+
+  let next = 0;
+  async function worker(id) {
+    while (true) {
+      const i = next++;
+      if (i >= opts.count) return;
+      if (!opts.quiet) log.raw(color.dim(`\n── account ${i + 1}/${opts.count} ──`));
+      const r = await provisionOne(platformContext, inboxContext, {
+        domain: opts.domain,
+        timeout: opts.timeout,
+        turnstileTimeout: opts.turnstileTimeout,
+        retries: opts.retries,
+        keyName: opts.keyName,
+        keyNamePattern: opts.keyNamePattern,
+      });
+      results[i] = r;
+      await flush();
+    }
+  }
+
+  try {
+    await Promise.all(
+      Array.from({ length: Math.min(opts.concurrency, opts.count) }, (_, k) => worker(k)),
+    );
+  } finally {
+    if (!opts.keepBrowser) await browser.close().catch(() => {});
+    else log.warn("--keep-browser set: browser left open (stop the process to exit)");
+  }
+
+  const ok = results.filter((r) => r?.ok).length;
+  log.raw("");
+  log.info(`done: ${ok}/${results.filter(Boolean).length || 0} succeeded -> ${outFile}`);
+  for (const r of results.filter(Boolean)) {
+    if (r.ok) log.raw(`  ${color.green("✔")} ${r.email}  ${color.dim(`key=${r.api_key}`)}`);
+    else log.raw(`  ${color.red("✘")} ${r.email || "?"}  ${color.dim(`${r.error_kind}: ${r.error}`)}`);
+  }
+  process.exit(ok === opts.count ? 0 : 1);
+}
+
+main().catch((e) => {
+  log.error(e.stack || e.message);
+  process.exit(1);
+});
