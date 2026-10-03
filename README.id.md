@@ -4,7 +4,7 @@
 
 # cyberouter-bulk-creator
 
-**Pembuatan massal akun & API key [Cyberouter](https://router.enclave.ai) (router.enclave.ai) secara end-to-end, diverifikasi lewat inbox sementara [zenvex.dev](https://zenvex.dev).**
+**Pembuatan massal akun & API key [Cyberouter](https://router.enclave.ai) (router.enclave.ai) secara end-to-end, diverifikasi lewat inbox sementara [tempmail.cloud](https://tempmail.cloud), dengan tantangan Cloudflare Turnstile dipecahkan oleh [CapSolver](https://capsolver.com).**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-38e1ff.svg?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-8b5cff.svg?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
@@ -23,14 +23,17 @@
 
 Satu perintah membuat akun Cyberouter beserta API key, dari awal hingga akhir:
 
-1. Membuat email sementara baru di **zenvex.dev**.
-2. Meminta kode masuk dari **Cyberouter**.
-3. Membaca kode dari inbox sementara tadi.
-4. Masuk dan membuat **API key `sk-cyberouter_...`**.
-5. Menyimpan semuanya ke file JSON.
+1. Membuat email sementara baru di **tempmail.cloud** (lewat JSON API-nya).
+2. Memecahkan Cloudflare Turnstile Cyberouter dengan **CapSolver**.
+3. Meminta kode masuk dari **Cyberouter**.
+4. Membaca kode dari inbox sementara tadi.
+5. Masuk dan membuat **API key `sk-cyberouter_...`**.
+6. Menyimpan semuanya ke file JSON.
 
-Proses berjalan di browser sungguhan dengan Playwright, sehingga Cloudflare
-Turnstile dan form HTML platform berperilaku sama seperti untuk manusia.
+Proses menjalankan form browser Cyberouter sungguhan dengan Playwright, sehingga
+cookie, token CSRF, dan form HTML platform berperilaku sama seperti untuk
+manusia; hanya token Turnstile yang diambil di luar browser, karena widget-nya
+bersifat deferred dan tidak akan selesai di browser otomatis.
 
 ## Mulai cepat
 
@@ -40,6 +43,7 @@ cd cyberouter-bulk-creator
 npm install
 npx playwright install --with-deps chromium
 cp .env.example .env
+# lalu isi CAPSOLVER_KEY di .env (https://dashboard.capsolver.com)
 
 # satu akun
 node src/index.mjs
@@ -54,11 +58,11 @@ Hasil tersimpan di `cyberouter-accounts-<timestamp>.json`:
 [
   {
     "ok": true,
-    "email": "swiftfox482913@souss.dev",
+    "email": "bright.7b06a5@digital.tempmail.cloud",
     "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "key_name": "prod-token-7421",
-    "email_provider": "zenvex.dev (souss.dev)",
-    "elapsed_ms": 48210,
+    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "elapsed_ms": 19579,
     "created_at": "2026-10-03T00:00:00.000Z"
   }
 ]
@@ -69,14 +73,15 @@ Hasil tersimpan di `cyberouter-accounts-<timestamp>.json`:
 | Flag | Keterangan | Default |
 |------|------------|---------|
 | `-n, --count N` | jumlah akun | `1` |
-| `-d, --domain D` | domain penerima zenvex | `souss.dev` |
+| `-d, --domain D` | domain penerima tempmail | default tempmail |
 | `-o, --out FILE` | file JSON keluaran | `cyberouter-accounts-<ts>.json` |
 | `-t, --timeout MS` | batas tunggu email masuk | `180000` |
-| `--turnstile-timeout MS` | batas tunggu Cloudflare | `150000` |
+| `--turnstile-timeout MS` | batas tunggu CapSolver | `120000` |
 | `--retries N` | percobaan ulang per akun | `3` |
 | `--concurrency N` | akun paralel | `1` |
 | `--key-name NAME` | nama API key tetap | acak |
-| `--proxy URL` | proxy untuk browser | tidak ada |
+| `--capsolver-key KEY` | API key CapSolver | `CAPSOLVER_KEY` |
+| `--proxy URL` | proxy untuk browser & API | tidak ada |
 | `--headful` | tampilkan browser | mati |
 | `--keep-browser` | biarkan browser terbuka | mati |
 | `--doctor` | cek lingkungan | – |
@@ -88,12 +93,13 @@ Salin `.env.example` menjadi `.env`. Flag CLI menimpa nilai environment, yang
 menimpa default.
 
 ```dotenv
-CYBEROUTER_DOMAIN=souss.dev
+CAPSOLVER_KEY=your-capsolver-key
+CYBEROUTER_DOMAIN=
 CYBEROUTER_COUNT=1
 CYBEROUTER_CONCURRENCY=1
 CYBEROUTER_RETRIES=3
 CYBEROUTER_TIMEOUT=180000
-CYBEROUTER_TURNSTILE_TIMEOUT=150000
+CYBEROUTER_TURNSTILE_TIMEOUT=120000
 CYBEROUTER_PROXY=
 ```
 
@@ -101,20 +107,19 @@ CYBEROUTER_PROXY=
 
 | Tantangan | Gejala | Penanganan |
 |-----------|--------|------------|
-| **Turnstile di zenvex** | tombol "Open Inbox" tetap nonaktif | Polling hingga tantangan memberi token, lalu klik |
-| **Turnstile gagal sesaat** | "security check failed" | Muat ulang, isi ulang alamat, ulangi |
-| **Turnstile di Cyberouter** | submit tidak terjadi | Tunggu token widget sebelum mengirim form |
-| **Email lambat** | kode tak kunjung tiba | Polling berbatas dengan error `mail-timeout` |
+| **Turnstile di Cyberouter** | widget `execute` deferred tak pernah selesai; submit tak terjadi | Dipecahkan via CapSolver, token disuntik ke `cf-turnstile-response` |
+| **Waktu submit** | context hancur saat submit | Submit pada tick berikutnya agar evaluate penyuntikan selesai dulu |
+| **Email lambat** | kode tak kunjung tiba | Polling berbatas ke API tempmail.cloud dengan error `mail-timeout` |
 | **Kode kedaluwarsa** | "invalid or expired" | Ditandai `code-expired`, dicoba ulang dengan inbox baru |
 | **Batas laju** | HTTP 429 / "too many" | Ditandai `rate-limit`, dihentikan (retry tak membantu) |
-| **Proxy bocor** | request melewati proxy | Proxy dipasang di context browser |
+| **Proxy bocor** | request melewati proxy | Proxy dipasang di context browser; API inbox ikut memakainya |
 
 ## Kebutuhan
 
-- **Node.js 18+** (diuji di 22)
+- **Node.js 18+** (diuji di 24)
 - **Chromium** via `npx playwright install --with-deps chromium` (butuh apt)
-- IP keluar yang lolos Cloudflare. IP residensial atau VPS bersih paling andal;
-  proxy gratis publik hampir selalu gagal Turnstile.
+- **API key CapSolver** dengan saldo — untuk memecahkan tantangan Turnstile.
+- IP keluar yang lolos Cloudflare. IP residensial atau VPS bersih paling andal.
 
 Jalankan `node src/index.mjs --doctor` untuk memeriksa lingkungan.
 
@@ -128,15 +133,18 @@ Repositori ini sengaja minimal:
 
 ## FAQ
 
-**Domain zenvex mana yang bekerja?**
-`souss.dev` yang terverifikasi menerima email Cyberouter.
+**Domain tempmail mana yang bekerja?**
+Semua domain penerima aktif tempmail.cloud bekerja; email Cyberouter dikirim ke
+domain yang ditetapkan layanan. Pin satu domain dengan `-d`/`--domain` hanya
+bila perlu.
 
-**Kenapa satu context browser per tugas?**
-Inbox sementara tidak boleh berbagi cookie dengan sesi Cyberouter.
+**Kenapa dua context untuk satu tugas?**
+Sesi Cyberouter dan API tempmail.cloud diisolasi: API inbox berjalan lewat
+`APIRequestContext` Playwright yang berbagi proxy keluar tetapi bukan cookie
+jar Cyberouter. Karena itu `--concurrency` membuat context platform terpisah.
 
 **Bisakah headless di server?**
-Bisa, dengan Chromium terpasang dan IP keluar bersih. Gunakan `--proxy` untuk
-egress residensial.
+Bisa. Turnstile dipecahkan CapSolver, jadi browser interaktif tidak diperlukan.
 
 **Apakah API key bisa dilihat lagi?**
 Tidak. Cyberouter menampilkannya sekali. Tersimpan di JSON keluaran; jaga file
@@ -145,9 +153,9 @@ itu (sudah di-git-ignore).
 ## Penafian
 
 Alat ini mengotomatiskan alur pendaftaran pihak ketiga. Gunakan hanya di tempat
-Anda berwenang, sesuai ketentuan Cyberouter dan zenvex.dev. Penulis tidak
-berafiliasi dengan layanan mana pun dan tidak bertanggung jawab atas
-penyalahgunaan.
+Anda berwenang, sesuai ketentuan Cyberouter, tempmail.cloud, dan CapSolver.
+Penulis tidak berafiliasi dengan layanan mana pun dan tidak bertanggung jawab
+atas penyalahgunaan.
 
 ## Lisensi
 

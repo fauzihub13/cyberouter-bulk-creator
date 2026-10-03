@@ -1,16 +1,17 @@
 /**
  * Core provisioning flow: one Cyberouter account + one API key, end-to-end.
  *
- * Two browser contexts are used per account — one for the Cyberouter session
- * and one for the zenvex inbox — so that opening the temporary inbox never
- * disturbs the platform session (different cookie jars).
+ * The temporary inbox is created and polled over tempmail.cloud's JSON API
+ * through a Playwright `APIRequestContext` (shared cookie jar + proxy), while
+ * the Cyberouter session is driven in a browser context. The Cloudflare
+ * Turnstile challenge is solved with CapSolver.
  *
  * @module core/provision
  */
 
 import * as cyber from "../cyberouter/client.mjs";
-import { waitForCode } from "../inbox/zenvex.mjs";
-import { randomEmailLocal, randomKeyName } from "../utils/random.mjs";
+import { createInbox, waitForCode } from "../inbox/tempmail.mjs";
+import { randomKeyName } from "../utils/random.mjs";
 import { log } from "../utils/logger.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -18,7 +19,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Classify an error so the caller knows whether a retry can help. */
 export function classify(err) {
   const m = (err?.message ? err.message : String(err)).toLowerCase();
-  if (m.includes("turnstile")) return "turnstile";
+  if (m.includes("turnstile") || m.includes("capsolver")) return "turnstile";
   if (m.includes("invalid or expired")) return "code-expired";
   if (m.includes("timed out waiting for the sign-in email")) return "mail-timeout";
   if (m.includes("too many") || m.includes("rate limit") || m.includes("429")) return "rate-limit";
@@ -30,29 +31,26 @@ export function classify(err) {
  * Attempt one account once.
  *
  * @param {import('playwright').BrowserContext} platformContext
- * @param {import('playwright').BrowserContext} inboxContext
+ * @param {import('playwright').APIRequestContext} request
  * @param {object} opts
  * @param {number} attemptNo
  */
-async function attempt(platformContext, inboxContext, opts, attemptNo) {
+async function attempt(platformContext, request, opts, attemptNo) {
   const started = Date.now();
-  const domain = opts.domain || "souss.dev";
-  const local = randomEmailLocal();
-  const email = `${local}@${domain}`;
   const keyName = opts.keyName || randomKeyName();
 
   const platformPage = await platformContext.newPage();
-  const inboxPage = await inboxContext.newPage();
   try {
+    const inbox = await createInbox(request, {
+      domain: opts.domain || undefined,
+      localPart: opts.localPart || undefined,
+    });
+    const { email, domain, token } = inbox;
     log.step(`[try ${attemptNo}] provisioning ${email}`);
 
     await cyber.requestCode(platformPage, email, opts);
 
-    const code = await waitForCode(inboxPage, local, {
-      timeout: opts.timeout,
-      turnstileTimeout: opts.turnstileTimeout,
-      domain,
-    });
+    const code = await waitForCode(request, token, { timeout: opts.timeout });
     log.info(`code received: ${code}`);
 
     await cyber.submitCode(platformPage, email, code);
@@ -63,14 +61,14 @@ async function attempt(platformContext, inboxContext, opts, attemptNo) {
       email,
       api_key: apiKey,
       key_name: keyName,
-      email_provider: `zenvex.dev (${domain})`,
+      email_provider: `tempmail.cloud (${domain})`,
       elapsed_ms: Date.now() - started,
       created_at: new Date().toISOString(),
     };
   } catch (err) {
     return {
       ok: false,
-      email,
+      email: null,
       key_name: keyName,
       error: err.message,
       error_kind: classify(err),
@@ -79,7 +77,6 @@ async function attempt(platformContext, inboxContext, opts, attemptNo) {
     };
   } finally {
     await platformPage.close().catch(() => {});
-    await inboxPage.close().catch(() => {});
   }
 }
 
@@ -87,15 +84,15 @@ async function attempt(platformContext, inboxContext, opts, attemptNo) {
  * Provision a single account with retries and backoff.
  *
  * @param {import('playwright').BrowserContext} platformContext
- * @param {import('playwright').BrowserContext} inboxContext
+ * @param {import('playwright').APIRequestContext} request
  * @param {object} [opts]
  * @returns {Promise<object>} result record
  */
-export async function provisionOne(platformContext, inboxContext, opts = {}) {
+export async function provisionOne(platformContext, request, opts = {}) {
   const retries = Number.isInteger(opts.retries) ? opts.retries : 3;
   let last;
   for (let i = 1; i <= retries + 1; i++) {
-    last = await attempt(platformContext, inboxContext, opts, i);
+    last = await attempt(platformContext, request, opts, i);
     if (last.ok) return last;
 
     if (last.error_kind === "rate-limit") {

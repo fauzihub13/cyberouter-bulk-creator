@@ -3,7 +3,8 @@
  * cyberouter-bulk-creator — CLI entry point.
  *
  * Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and
- * API keys, using zenvex.dev temporary inboxes for email verification.
+ * API keys, using tempmail.cloud temporary inboxes for email verification and
+ * CapSolver for the Cloudflare Turnstile challenge.
  *
  * Exit codes: 0 = every requested account succeeded, 1 = at least one failed,
  * 2 = bad arguments.
@@ -14,6 +15,7 @@
 import { writeFile } from "node:fs/promises";
 import { provisionOne } from "./core/provision.mjs";
 import { buildOptions, parseProxy } from "./utils/config.mjs";
+import { balance as capsolverBalance } from "./utils/capsolver.mjs";
 import { log, color } from "./utils/logger.mjs";
 
 /**
@@ -46,14 +48,15 @@ function help() {
 
   Options:
     -n, --count N               number of accounts              (default 1)
-    -d, --domain D              zenvex receiving domain         (default souss.dev)
+    -d, --domain D              tempmail receiving domain       (default: any)
     -o, --out FILE              output JSON file                (default cyberouter-accounts-<ts>.json)
     -t, --timeout MS            max wait for the sign-in email  (default 180000)
-        --turnstile-timeout MS  max wait for Cloudflare          (default 150000)
+        --turnstile-timeout MS  max wait for CapSolver          (default 120000)
         --retries N             retries per account              (default 3)
         --concurrency N         accounts in parallel             (default 1)
         --key-name NAME         fixed API-key name (default random)
         --key-pattern PATTERN   random key pattern               (default "{adj}-{noun}-{num}")
+        --capsolver-key KEY     CapSolver API key                (or CAPSOLVER_KEY)
         --proxy URL             proxy for browser + requests     (or CYBEROUTER_PROXY)
         --headful               show the browser
         --keep-browser          leave the browser open at the end (debugging)
@@ -112,11 +115,16 @@ async function main() {
   const outFile = opts.out || `cyberouter-accounts-${stamp}.json`;
   const proxy = parseProxy(opts.proxy);
 
+  if (!opts.capsolverKey) {
+    log.error("CAPSOLVER_KEY is missing — set it in .env or the environment");
+    process.exit(2);
+  }
+
   log.raw(color.cyan("cyberouter-bulk-creator") + color.dim(` v${VERSION}`));
   log.info(
     `accounts=${opts.count}  concurrency=${opts.concurrency}  retries=${opts.retries}  out=${outFile}`,
   );
-  log.info(`domain=${opts.domain}`);
+  log.info(`domain=${opts.domain || "(tempmail default)"}`);
   log.info(proxy ? `proxy: ${proxy.server}` : "proxy: none (direct)");
 
   const { chromium } = await loadPlaywright();
@@ -132,7 +140,11 @@ async function main() {
     ...(proxy ? { proxy } : {}),
   };
   const platformContext = await browser.newContext(baseContextOpts);
-  const inboxContext = await browser.newContext(baseContextOpts);
+  // The inbox API shares the platform context's cookie jar and proxy.
+  const request = platformContext.request;
+
+  const bal = await capsolverBalance(opts.capsolverKey);
+  if (bal !== null) log.info(`capsolver balance: $${bal}`);
 
   const results = [];
   const flush = async () => writeFile(outFile, JSON.stringify(results.filter(Boolean), null, 2));
@@ -143,10 +155,11 @@ async function main() {
       const i = next++;
       if (i >= opts.count) return;
       if (!opts.quiet) log.raw(color.dim(`\n── account ${i + 1}/${opts.count} ──`));
-      const r = await provisionOne(platformContext, inboxContext, {
-        domain: opts.domain,
+      const r = await provisionOne(platformContext, request, {
+        domain: opts.domain || undefined,
         timeout: opts.timeout,
         turnstileTimeout: opts.turnstileTimeout,
+        capsolverKey: opts.capsolverKey,
         retries: opts.retries,
         keyName: opts.keyName,
         keyNamePattern: opts.keyNamePattern,

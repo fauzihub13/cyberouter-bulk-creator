@@ -1,6 +1,6 @@
 {
   "name": "cyberouter-bulk-creator",
-  "description": "Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and API keys through zenvex.dev temporary inboxes. Playwright-driven, MIT, no CI.",
+  "description": "Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and API keys through tempmail.cloud temporary inboxes and CapSolver for Cloudflare Turnstile. Playwright-driven, MIT, no CI.",
   "topics": [
     "cyberouter",
     "enclave",
@@ -10,7 +10,9 @@
     "api-key",
     "account-creator",
     "temporary-email",
-    "zenvex",
+    "tempmail",
+    "capsolver",
+    "turnstile",
     "playwright",
     "nodejs",
     "cli",

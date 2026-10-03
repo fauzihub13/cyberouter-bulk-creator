@@ -45,14 +45,15 @@ export function buildOptions(argv, env = process.env) {
 
   const opts = {
     count: asInt(cfg.CYBEROUTER_COUNT, 1),
-    domain: cfg.CYBEROUTER_DOMAIN || "souss.dev",
+    domain: cfg.CYBEROUTER_DOMAIN || null,
     out: null,
     timeout: asInt(cfg.CYBEROUTER_TIMEOUT, 180000),
-    turnstileTimeout: asInt(cfg.CYBEROUTER_TURNSTILE_TIMEOUT, 150000),
+    turnstileTimeout: asInt(cfg.CYBEROUTER_TURNSTILE_TIMEOUT, 120000),
     retries: asInt(cfg.CYBEROUTER_RETRIES, 3),
     concurrency: asInt(cfg.CYBEROUTER_CONCURRENCY, 1),
     keyName: cfg.CYBEROUTER_KEY_NAME || null,
     keyNamePattern: cfg.CYBEROUTER_KEY_NAME_PATTERN || "{adj}-{noun}-{num}",
+    capsolverKey: cfg.CAPSOLVER_KEY || null,
     headful: asBool(cfg.CYBEROUTER_HEADFUL),
     quiet: false,
     keepBrowser: asBool(cfg.CYBEROUTER_KEEP_BROWSER),
@@ -78,6 +79,7 @@ export function buildOptions(argv, env = process.env) {
     else if (k === "--concurrency") (opts.concurrency = parseInt(need(i, k), 10)), i++;
     else if (k === "--key-name") (opts.keyName = need(i, k)), i++;
     else if (k === "--key-pattern") (opts.keyNamePattern = need(i, k)), i++;
+    else if (k === "--capsolver-key") (opts.capsolverKey = need(i, k)), i++;
     else if (k === "--proxy") (opts.proxy = need(i, k)), i++;
     else if (k === "--headful") opts.headful = true;
     else if (k === "--keep-browser") opts.keepBrowser = true;

@@ -3,23 +3,28 @@
  *
  * The platform is server-rendered: auth and key creation are HTML form POSTs,
  * not a JSON API. This module drives the real forms through the page context
- * so cookies, CSRF tokens and the Cloudflare Turnstile widget all behave the
- * same as a human session.
+ * so cookies and CSRF tokens behave the same as a human session. The Turnstile
+ * challenge is solved out-of-band with CapSolver and injected into the form.
  *
  * Verified flow
- *   1. GET  /login                      -> capture csrf_token + cookies
- *   2. POST /login   {csrf_token,email,legal_version}  (Turnstile token attached)
- *   3. GET  /login   (code step)        -> capture fresh csrf_token
- *   4. POST /login   {csrf_token,email,code}           -> session cookie
- *   5. GET  /keys                       -> session form
- *   6. POST /keys    {name}             -> key shown once in the page
+ *   1. GET  /login                      -> capture csrf_token + cookies + sitekey
+ *   2. CapSolver solves Turnstile       -> token injected into cf-turnstile-response
+ *   3. POST /login   {csrf_token,email,legal_version,cf-turnstile-response}
+ *   4. GET  /login   (code step)        -> capture fresh csrf_token
+ *   5. POST /login/code {csrf_token,email,code} -> session cookie
+ *   6. GET  /keys                       -> session form
+ *   7. POST /keys    {name}             -> key shown once in the page
  *
  * @module cyberouter/client
  */
 
 import { log } from "../utils/logger.mjs";
+import { solveTurnstile } from "../utils/capsolver.mjs";
 
 export const CYBEROUTER = "https://router.enclave.ai";
+
+/** Fallback Turnstile site key, used if the page cannot be parsed. */
+export const TURNSTILE_SITEKEY = "0x4AAAAAADo_sGx9Lbpp7iVl";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -35,50 +40,59 @@ async function readFormState(page) {
   });
 }
 
-/** Wait until a Turnstile response token exists (if the form uses Turnstile). */
-async function settleTurnstile(page, timeoutMs = 150000) {
-  const deadline = Date.now() + timeoutMs;
-  const hasWidget = await page
-    .locator('[data-turnstile], .cf-turnstile, input[name="cf-turnstile-response"]')
-    .count()
-    .catch(() => 0);
-  if (!hasWidget) return;
-  while (Date.now() < deadline) {
-    const state = await page
-      .evaluate(() => {
-        const tok = document.querySelector('input[name="cf-turnstile-response"]');
-        return {
-          token: tok ? (tok.value || "").length : 0,
-          failed: /security check failed/i.test(document.body.innerText || ""),
-        };
-      })
-      .catch(() => null);
-    if (state?.failed) throw new Error("turnstile: security check failed");
-    if (state && state.token > 0) return;
-    await sleep(1500);
-  }
-  throw new Error("turnstile did not issue a token before the timeout");
+/** Read the Turnstile site key from the page's inline render call. */
+async function readSiteKey(page) {
+  const html = await page.content().catch(() => "");
+  const m = html.match(/sitekey:\s*"([^"]+)"/i) || html.match(/data-sitekey="([^"]+)"/i);
+  return m ? m[1] : TURNSTILE_SITEKEY;
 }
 
 /**
  * Step 1+2: request a sign-in code for `email`.
- * Leaves the page on the "Check your email" code step.
+ *
+ * Cloudflare Turnstile on this form is `execution: "execute"`, so it never
+ * runs until submit and a headless/automated browser cannot pass it. We solve
+ * it with CapSolver and inject the token into the hidden input. Leaving the
+ * page on the "Check your email" code step.
  *
  * @param {import('playwright').Page} page
  * @param {string} email
- * @param {{turnstileTimeout?:number}} [opts]
+ * @param {{capsolverKey:string, turnstileTimeout?:number}} opts
  */
 export async function requestCode(page, email, opts = {}) {
   await page.goto(`${CYBEROUTER}/login`, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.locator('input[name="email"]').waitFor({ state: "visible", timeout: 30000 });
   await page.fill('input[name="email"]', email);
 
-  await settleTurnstile(page, opts.turnstileTimeout ?? 150000);
-  await Promise.all([
-    page.waitForLoadState("domcontentloaded").catch(() => {}),
-    page.click('form[action="/login"] button[type="submit"], button:has-text("Email me a code")'),
-  ]);
-  await sleep(1500);
+  const siteKey = await readSiteKey(page);
+  const token = await solveTurnstile({
+    clientKey: opts.capsolverKey,
+    websiteURL: `${CYBEROUTER}/login`,
+    websiteKey: siteKey,
+    action: opts.turnstileAction || "login",
+    timeout: opts.turnstileTimeout ?? 120000,
+  });
+  log.info("turnstile solved via capsolver");
+
+  const injected = await page.evaluate((t) => {
+    const input = document.querySelector('input[name="cf-turnstile-response"]');
+    const form = document.querySelector('form[action="/login"]');
+    if (!input || !form) return false;
+    input.value = t;
+    // Submit on the next tick so this evaluate resolves before the navigation
+    // tears down the execution context.
+    setTimeout(() => form.submit(), 0);
+    return true;
+  }, token);
+  if (!injected) throw new Error("could not inject the turnstile token into the login form");
+
+  // The form POSTs and the server responds with the code step (same URL).
+  await page
+    .waitForFunction(() => /check your email|sign-in code/i.test(document.body.innerText), null, {
+      timeout: 30000,
+    })
+    .catch(() => {});
+  await sleep(1000);
 
   const text = await page.evaluate(() => document.body.innerText);
   if (!/check your email|sign-in code/i.test(text)) {
@@ -145,20 +159,4 @@ export async function createApiKey(page, name) {
   if (!key) throw new Error("API key was not shown after creation");
   log.ok("API key created");
   return key;
-}
-
-/**
- * Full end-to-end provisioning for one account.
- *
- * @param {import('playwright').Page} page
- * @param {object} opts
- * @returns {Promise<{email:string, api_key:string, key_name:string}>}
- */
-export async function provisionOnPage(page, opts) {
-  const { email, keyName } = opts;
-  await requestCode(page, email, opts);
-  const code = await opts.waitForCode(page, email.split("@")[0]);
-  await submitCode(page, email, code);
-  const apiKey = await createApiKey(page, keyName);
-  return { email, api_key: apiKey, key_name: keyName };
 }

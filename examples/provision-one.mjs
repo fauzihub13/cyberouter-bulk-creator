@@ -18,12 +18,11 @@ const browser = await chromium.launch({
 
 try {
   const platformContext = await browser.newContext({ locale: "en-US" });
-  const inboxContext = await browser.newContext({ locale: "en-US" });
 
-  const result = await provisionOne(platformContext, inboxContext, {
-    domain: "souss.dev",
+  const result = await provisionOne(platformContext, platformContext.request, {
+    capsolverKey: process.env.CAPSOLVER_KEY,
     timeout: 180000,
-    turnstileTimeout: 150000,
+    turnstileTimeout: 120000,
     retries: 2,
   });
 

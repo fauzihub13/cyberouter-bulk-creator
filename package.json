@@ -1,7 +1,7 @@
 {
   "name": "cyberouter-bulk-creator",
   "version": "1.0.0",
-  "description": "Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and API keys via zenvex.dev temporary inboxes.",
+  "description": "Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and API keys via tempmail.cloud temporary inboxes and CapSolver for Cloudflare Turnstile.",
   "type": "module",
   "main": "src/index.mjs",
   "bin": {
@@ -30,7 +30,10 @@
     "api-key",
     "account-creator",
     "temporary-email",
-    "zenvex",
+    "tempmail",
+    "tempmail-cloud",
+    "capsolver",
+    "turnstile",
     "playwright",
     "cli",
     "bulk"
