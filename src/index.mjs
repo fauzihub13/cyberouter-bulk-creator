@@ -183,9 +183,6 @@ async function main() {
     viewport: { width: 1366, height: 900 },
     ...(proxy ? { proxy } : {}),
   };
-  const platformContext = await browser.newContext(baseContextOpts);
-  // The inbox API shares the platform context's cookie jar and proxy.
-  const request = platformContext.request;
 
   const bal = await capsolverBalance(opts.capsolverKey);
   if (bal !== null) {
@@ -205,7 +202,7 @@ async function main() {
       const i = next++;
       if (i >= opts.count) return;
       if (!opts.quiet) log.section(`account ${i + 1}/${opts.count}`);
-      const r = await provisionOne(platformContext, request, {
+      const r = await provisionOne(browser, baseContextOpts, {
         domain: opts.domain || undefined,
         timeout: opts.timeout,
         turnstileTimeout: opts.turnstileTimeout,

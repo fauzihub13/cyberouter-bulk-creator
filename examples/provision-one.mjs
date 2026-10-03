@@ -17,9 +17,7 @@ const browser = await chromium.launch({
 });
 
 try {
-  const platformContext = await browser.newContext({ locale: "en-US" });
-
-  const result = await provisionOne(platformContext, platformContext.request, {
+  const result = await provisionOne(browser, { locale: "en-US" }, {
     capsolverKey: process.env.CAPSOLVER_KEY,
     timeout: 180000,
     turnstileTimeout: 120000,

@@ -28,7 +28,8 @@ export function classify(err) {
 }
 
 /**
- * Attempt one account once.
+ * Attempt one account once, inside a fresh browser context so a previous
+ * account's Cyberouter session can never leak in.
  *
  * @param {import('playwright').BrowserContext} platformContext
  * @param {import('playwright').APIRequestContext} request
@@ -84,30 +85,45 @@ async function attempt(platformContext, request, opts, attemptNo) {
 /**
  * Provision a single account with retries and backoff.
  *
- * @param {import('playwright').BrowserContext} platformContext
- * @param {import('playwright').APIRequestContext} request
+ * Each account gets its own browser context (isolated cookie jar) so that
+ * signing into account N never leaves account N+1 already authenticated, which
+ * would make `/login` redirect away from the email form. The matching
+ * `APIRequestContext` shares that context's proxy for BlipMail calls.
+ *
+ * @param {import('playwright').Browser} browser
+ * @param {object} contextOpts  Playwright `newContext` options (locale, proxy…)
  * @param {object} [opts]
  * @returns {Promise<object>} result record
  */
-export async function provisionOne(platformContext, request, opts = {}) {
+export async function provisionOne(browser, contextOpts, opts = {}) {
   const retries = Number.isInteger(opts.retries) ? opts.retries : 3;
-  let last;
-  for (let i = 1; i <= retries + 1; i++) {
-    last = await attempt(platformContext, request, opts, i);
-    if (last.ok) return last;
+  const platformContext = await browser.newContext(contextOpts);
+  const request = platformContext.request;
+  try {
+    let last;
+    for (let i = 1; i <= retries + 1; i++) {
+      // Drop any cookies from a previous failed attempt on this account.
+      await platformContext.clearCookies().catch(() => {});
+      last = await attempt(platformContext, request, opts, i);
+      if (last.ok) return last;
 
-    if (last.error_kind === "rate-limit") {
-      log.warn(color.yellow("rate limit hit") + color.dim(" — aborting retries for this account"));
-      return last;
+      if (last.error_kind === "rate-limit") {
+        log.warn(
+          color.yellow("rate limit hit") + color.dim(" — aborting retries for this account"),
+        );
+        return last;
+      }
+      if (i <= retries) {
+        const backoff = Math.min(8000 * i, 30000);
+        log.warn(
+          `${color.yellow(`attempt ${i} failed`)} ${color.dim(`(${last.error_kind})`)} ` +
+            color.dim(`retrying in ${backoff}ms`),
+        );
+        await sleep(backoff);
+      }
     }
-    if (i <= retries) {
-      const backoff = Math.min(8000 * i, 30000);
-      log.warn(
-        `${color.yellow(`attempt ${i} failed`)} ${color.dim(`(${last.error_kind})`)} ` +
-          color.dim(`retrying in ${backoff}ms`),
-      );
-      await sleep(backoff);
-    }
+    return last;
+  } finally {
+    await platformContext.close().catch(() => {});
   }
-  return last;
 }
