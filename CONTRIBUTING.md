@@ -44,5 +44,5 @@ relevant log lines. Redact any `sk-` key and any email address.
 ## Legal
 
 Use this software only where you are permitted to. Respect Cyberouter's,
-tempmail.cloud's, and CapSolver's terms of service. You are responsible for how
+BlipMail's, and CapSolver's terms of service. You are responsible for how
 you use it.

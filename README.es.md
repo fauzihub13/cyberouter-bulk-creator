@@ -4,7 +4,7 @@
 
 # cyberouter-bulk-creator
 
-**Aprovisionamiento masivo y de extremo a extremo de cuentas y claves API de [Cyberouter](https://router.enclave.ai) (router.enclave.ai), verificado con bandejas temporales de [tempmail.cloud](https://tempmail.cloud), con el reto Cloudflare Turnstile resuelto por [CapSolver](https://capsolver.com).**
+**Aprovisionamiento masivo y de extremo a extremo de cuentas y claves API de [Cyberouter](https://router.enclave.ai) (router.enclave.ai), verificado con bandejas temporales de [BlipMail](https://blipmail.mpruy.my.id), con el reto Cloudflare Turnstile resuelto por [CapSolver](https://capsolver.com).**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-38e1ff.svg?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-8b5cff.svg?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
@@ -23,7 +23,7 @@
 
 Un solo comando crea cuentas de Cyberouter y sus claves API, de principio a fin:
 
-1. Crea un correo temporal nuevo en **tempmail.cloud** (vía su API JSON).
+1. Crea un correo temporal nuevo en **BlipMail** (vía su API JSON).
 2. Resuelve el Cloudflare Turnstile de Cyberouter con **CapSolver**.
 3. Solicita un código de acceso a **Cyberouter**.
 4. Lee el código del correo en la bandeja temporal.
@@ -58,10 +58,10 @@ El resultado se escribe en `cyberouter-accounts-<timestamp>.json`:
 [
   {
     "ok": true,
-    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "email": "langitbiru23@mpruy.my.id",
     "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "key_name": "prod-token-7421",
-    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "email_provider": "BlipMail (mpruy.my.id)",
     "elapsed_ms": 19579,
     "created_at": "2026-10-03T00:00:00.000Z"
   }
@@ -76,10 +76,10 @@ persistentes (ambos en git-ignore):
 ```json
 [
   {
-    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "email": "langitbiru23@mpruy.my.id",
     "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "key_name": "prod-token-7421",
-    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "email_provider": "BlipMail (mpruy.my.id)",
     "created_at": "2026-10-03T00:00:00.000Z"
   }
 ]
@@ -88,7 +88,7 @@ persistentes (ambos en git-ignore):
 `results.txt` — una línea `email|api_key` por éxito:
 
 ```
-bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+langitbiru23@mpruy.my.id|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ## CLI
@@ -96,7 +96,7 @@ bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | Opción | Descripción | Por defecto |
 |--------|-------------|-------------|
 | `-n, --count N` | número de cuentas | `1` |
-| `-d, --domain D` | dominio receptor de tempmail | por defecto de tempmail |
+| `-d, --domain D` | dominio receptor de blipmail | por defecto de blipmail |
 | `-o, --out FILE` | archivo JSON de salida | `cyberouter-accounts-<ts>.json` |
 | `--results-json FILE` | añadir cuentas exitosas (array JSON) | `results.json` |
 | `--results-txt FILE` | añadir `email|api_key` por éxito | `results.txt` |
@@ -136,7 +136,7 @@ CYBEROUTER_PROXY=
 |------|---------|----------|
 | **Turnstile en Cyberouter** | el widget `execute` diferido nunca se resuelve; el envío no hace nada | CapSolver lo resuelve y el token se inyecta en `cf-turnstile-response` |
 | **Momento del envío** | el contexto se destruye al enviar | Enviar en el siguiente tick para que el evaluate de inyección termine antes |
-| **Retraso del correo** | el código no llega | Sondeo con límite a la API de tempmail.cloud con error `mail-timeout` |
+| **Retraso del correo** | el código no llega | Sondeo con límite a la API de BlipMail con error `mail-timeout` |
 | **Código caducado** | "invalid or expired" | Se marca `code-expired` y se reintenta con otra bandeja |
 | **Límites de tasa** | HTTP 429 / "too many" | Se marca `rate-limit` y se aborta (reintentar no ayuda) |
 | **Fuga de proxy** | peticiones sin proxy | El proxy se aplica al contexto del navegador; la API de la bandeja lo comparte |
@@ -162,13 +162,13 @@ Este repositorio es deliberadamente mínimo:
 
 ## Preguntas frecuentes
 
-**¿Qué dominio de tempmail funciona?**
-Cualquiera de los dominios receptores activos de tempmail.cloud; el correo de
+**¿Qué dominio de blipmail funciona?**
+Cualquiera de los dominios receptores activos de BlipMail; el correo de
 Cyberouter llega al que asigne el servicio. Fija uno con `-d`/`--domain` solo si
 lo necesitas.
 
 **¿Por qué dos contextos para una misma tarea?**
-La sesión de Cyberouter y la API de tempmail.cloud están aisladas: la API de la
+La sesión de Cyberouter y la API de BlipMail están aisladas: la API de la
 bandeja se ejecuta mediante un `APIRequestContext` de Playwright que comparte el
 proxy de salida pero no las cookies de Cyberouter. Por eso `--concurrency` crea
 contextos de plataforma separados.
@@ -183,7 +183,7 @@ ese archivo (está en git-ignore).
 ## Aviso legal
 
 Esta herramienta automatiza un registro de terceros. Úsala solo donde estés
-autorizado y conforme a los términos de Cyberouter, tempmail.cloud y CapSolver.
+autorizado y conforme a los términos de Cyberouter, BlipMail y CapSolver.
 Los autores no están afiliados a estos servicios y no asumen responsabilidad por
 el mal uso.
 

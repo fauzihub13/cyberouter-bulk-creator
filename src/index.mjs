@@ -3,7 +3,7 @@
  * cyberouter-bulk-creator — CLI entry point.
  *
  * Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and
- * API keys, using tempmail.cloud temporary inboxes for email verification and
+ * API keys, using BlipMail temporary inboxes for email verification and
  * CapSolver for the Cloudflare Turnstile challenge.
  *
  * Exit codes: 0 = every requested account succeeded, 1 = at least one failed,
@@ -67,7 +67,7 @@ function help() {
 
   Options:
     -n, --count N               number of accounts              (default 1)
-    -d, --domain D              tempmail receiving domain       (default: any)
+    -d, --domain D              blipmail receiving domain       (default: any)
     -o, --out FILE              output JSON file                (default cyberouter-accounts-<ts>.json)
         --results-json FILE     append successful accounts here  (default results.json)
         --results-txt FILE      append email|apikey here         (default results.txt)
@@ -152,7 +152,7 @@ async function main() {
     accounts: opts.count,
     concurrency: opts.concurrency,
     retries: opts.retries,
-    domain: opts.domain || "tempmail default",
+    domain: opts.domain || "blipmail default",
     out: outFile,
   });
   log.kv({

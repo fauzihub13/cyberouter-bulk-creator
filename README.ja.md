@@ -4,7 +4,7 @@
 
 # cyberouter-bulk-creator
 
-**[Cyberouter](https://router.enclave.ai)（router.enclave.ai）のアカウントと API キーを、[tempmail.cloud](https://tempmail.cloud) の一時受信トレイで検証しながら、一括かつエンドツーエンドで作成します。Turnstile は [CapSolver](https://capsolver.com) で解きます。**
+**[Cyberouter](https://router.enclave.ai)（router.enclave.ai）のアカウントと API キーを、[BlipMail](https://blipmail.mpruy.my.id) の一時受信トレイで検証しながら、一括かつエンドツーエンドで作成します。Turnstile は [CapSolver](https://capsolver.com) で解きます。**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-38e1ff.svg?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-8b5cff.svg?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
@@ -23,7 +23,7 @@
 
 1 つのコマンドで、Cyberouter のアカウントと API キーをエンドツーエンドで作成します。
 
-1. **tempmail.cloud** で新しい一時メールを作成(JSON API 経由)。
+1. **BlipMail** で新しい一時メールを作成(JSON API 経由)。
 2. **CapSolver** で Cyberouter の Cloudflare Turnstile を解きます。
 3. **Cyberouter** にサインインコードを要求。
 4. 一時受信トレイからメールのコードを読み取る。
@@ -58,10 +58,10 @@ node src/index.mjs -n 5 --concurrency 2
 [
   {
     "ok": true,
-    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "email": "langitbiru23@mpruy.my.id",
     "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "key_name": "prod-token-7421",
-    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "email_provider": "BlipMail (mpruy.my.id)",
     "elapsed_ms": 19579,
     "created_at": "2026-10-03T00:00:00.000Z"
   }
@@ -76,10 +76,10 @@ node src/index.mjs -n 5 --concurrency 2
 ```json
 [
   {
-    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "email": "langitbiru23@mpruy.my.id",
     "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "key_name": "prod-token-7421",
-    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "email_provider": "BlipMail (mpruy.my.id)",
     "created_at": "2026-10-03T00:00:00.000Z"
   }
 ]
@@ -88,7 +88,7 @@ node src/index.mjs -n 5 --concurrency 2
 `results.txt` — 成功ごとに 1 行の `email|api_key`:
 
 ```
-bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+langitbiru23@mpruy.my.id|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ## CLI
@@ -96,7 +96,7 @@ bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | オプション | 説明 | 既定値 |
 |------------|------|--------|
 | `-n, --count N` | アカウント数 | `1` |
-| `-d, --domain D` | tempmail の受信ドメイン | tempmail 既定 |
+| `-d, --domain D` | blipmail の受信ドメイン | blipmail 既定 |
 | `-o, --out FILE` | 出力 JSON | `cyberouter-accounts-<ts>.json` |
 | `--results-json FILE` | 成功したアカウントを追加(JSON 配列) | `results.json` |
 | `--results-txt FILE` | 成功ごとに `email|api_key` を追加 | `results.txt` |
@@ -136,7 +136,7 @@ CYBEROUTER_PROXY=
 |------|------|------|
 | **Cyberouter の Turnstile** | 遅延実行型 `execute` ウィジェットが完了せず送信が無反応 | CapSolver で解き、トークンを `cf-turnstile-response` に注入 |
 | **送信タイミング** | 送信時にコンテキストが破棄される | 注入の evaluate が完了するよう次ティックで送信 |
-| **メール遅延** | コードが届かない | tempmail.cloud API を上限付きでポーリングし `mail-timeout` を返す |
+| **メール遅延** | コードが届かない | BlipMail API を上限付きでポーリングし `mail-timeout` を返す |
 | **コード失効** | "invalid or expired" | `code-expired` として新しい受信箱で再試行 |
 | **レート制限** | HTTP 429 / "too many" | `rate-limit` として中断(再試行は無効) |
 | **プロキシ漏れ** | リクエストが直通 | プロキシをブラウザコンテキストに設定。受信箱 API も同じ proxy を共有 |
@@ -161,13 +161,13 @@ CYBEROUTER_PROXY=
 
 ## よくある質問
 
-**どの tempmail ドメインが使えますか?**
-tempmail.cloud の有効な受信ドメインはすべて使えます。Cyberouter のメールは
+**どの blipmail ドメインが使えますか?**
+BlipMail の有効な受信ドメインはすべて使えます。Cyberouter のメールは
 サービスが割り当てたドメインに届きます。固定したい場合のみ `-d`/`--domain`
 を使ってください。
 
 **なぜ 1 タスクに 2 つのコンテキストを使うのですか?**
-Cyberouter セッションと tempmail.cloud API は分離されています。受信箱 API は
+Cyberouter セッションと BlipMail API は分離されています。受信箱 API は
 Playwright の `APIRequestContext` で実行し、出口プロキシは共有しますが
 Cyberouter の Cookie ジャーは共有しません。そのため `--concurrency` は
 独立したプラットフォームコンテキストを作成します。
@@ -182,7 +182,7 @@ Cyberouter の Cookie ジャーは共有しません。そのため `--concurren
 ## 免責事項
 
 本ツールはサードパーティの登録フローを自動化します。権限のある範囲でのみ、
-Cyberouter、tempmail.cloud、CapSolver の利用規約に従って使用してください。作者は
+Cyberouter、BlipMail、CapSolver の利用規約に従って使用してください。作者は
 これらのサービスと無関係であり、誤用について責任を負いません。
 
 ## ライセンス

@@ -4,7 +4,7 @@
 
 # cyberouter-bulk-creator
 
-**批量、端到端地创建 [Cyberouter](https://router.enclave.ai)（router.enclave.ai）账户与 API 密钥，通过 [tempmail.cloud](https://tempmail.cloud) 临时邮箱完成验证,并用 [CapSolver](https://capsolver.com) 破解 Cloudflare Turnstile 挑战。**
+**批量、端到端地创建 [Cyberouter](https://router.enclave.ai)（router.enclave.ai）账户与 API 密钥，通过 [BlipMail](https://blipmail.mpruy.my.id) 临时邮箱完成验证,并用 [CapSolver](https://capsolver.com) 破解 Cloudflare Turnstile 挑战。**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-38e1ff.svg?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-8b5cff.svg?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
@@ -23,7 +23,7 @@
 
 一条命令即可端到端创建 Cyberouter 账户和 API 密钥：
 
-1. 在 **tempmail.cloud** 生成一个全新的临时邮箱(通过其 JSON API)。
+1. 在 **BlipMail** 生成一个全新的临时邮箱(通过其 JSON API)。
 2. 用 **CapSolver** 破解 Cyberouter 的 Cloudflare Turnstile。
 3. 向 **Cyberouter** 请求登录验证码。
 4. 从临时收件箱读取邮件中的验证码。
@@ -57,10 +57,10 @@ node src/index.mjs -n 5 --concurrency 2
 [
   {
     "ok": true,
-    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "email": "langitbiru23@mpruy.my.id",
     "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "key_name": "prod-token-7421",
-    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "email_provider": "BlipMail (mpruy.my.id)",
     "elapsed_ms": 19579,
     "created_at": "2026-10-03T00:00:00.000Z"
   }
@@ -74,10 +74,10 @@ node src/index.mjs -n 5 --concurrency 2
 ```json
 [
   {
-    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "email": "langitbiru23@mpruy.my.id",
     "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "key_name": "prod-token-7421",
-    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "email_provider": "BlipMail (mpruy.my.id)",
     "created_at": "2026-10-03T00:00:00.000Z"
   }
 ]
@@ -86,7 +86,7 @@ node src/index.mjs -n 5 --concurrency 2
 `results.txt` — 每次成功一行 `email|api_key`:
 
 ```
-bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+langitbiru23@mpruy.my.id|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ## 命令行参数
@@ -94,7 +94,7 @@ bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
 | `-n, --count N` | 账户数量 | `1` |
-| `-d, --domain D` | tempmail 收件域名 | tempmail 默认 |
+| `-d, --domain D` | blipmail 收件域名 | blipmail 默认 |
 | `-o, --out FILE` | 输出 JSON 文件 | `cyberouter-accounts-<ts>.json` |
 | `--results-json FILE` | 追加成功账户(JSON 数组) | `results.json` |
 | `--results-txt FILE` | 每次成功追加 `email|api_key` | `results.txt` |
@@ -134,7 +134,7 @@ CYBEROUTER_PROXY=
 |------|------|------|
 | **Cyberouter 的 Turnstile** | deferred `execute` 控件无法完成;提交无反应 | 用 CapSolver 破解并注入令牌到 `cf-turnstile-response` |
 | **提交时机** | 提交时 context 被销毁 | 在下一个 tick 提交,让注入的 evaluate 先完成 |
-| **邮件延迟** | 验证码迟迟不到 | 有上限轮询 tempmail.cloud API 并返回 `mail-timeout` |
+| **邮件延迟** | 验证码迟迟不到 | 有上限轮询 BlipMail API 并返回 `mail-timeout` |
 | **验证码过期** | “invalid or expired” | 标记为 `code-expired`,换新邮箱重试 |
 | **速率限制** | HTTP 429 / “too many” | 标记为 `rate-limit` 并中止(重试无效) |
 | **代理泄露** | 请求绕过代理 | 代理配置在浏览器 context 上;邮箱 API 复用同一代理 |
@@ -157,11 +157,11 @@ CYBEROUTER_PROXY=
 
 ## 常见问题
 
-**哪个 tempmail 域名可用?**
-tempmail.cloud 的任意活跃收件域名都可用;Cyberouter 邮件会投递到服务分配的域名。仅在需要时用 `-d`/`--domain` 固定一个。
+**哪个 blipmail 域名可用?**
+BlipMail 的任意活跃收件域名都可用;Cyberouter 邮件会投递到服务分配的域名。仅在需要时用 `-d`/`--domain` 固定一个。
 
 **为什么一个任务用两个 context?**
-Cyberouter 会话与 tempmail.cloud API 相互隔离:收件箱 API 通过 Playwright `APIRequestContext` 运行,共享出口代理但不共享 Cyberouter cookie jar。因此 `--concurrency` 会创建独立的平台 context。
+Cyberouter 会话与 BlipMail API 相互隔离:收件箱 API 通过 Playwright `APIRequestContext` 运行,共享出口代理但不共享 Cyberouter cookie jar。因此 `--concurrency` 会创建独立的平台 context。
 
 **可以在服务器上无头运行吗?**
 可以。Turnstile 由 CapSolver 破解,无需交互式浏览器。
@@ -172,7 +172,7 @@ Cyberouter 会话与 tempmail.cloud API 相互隔离:收件箱 API 通过 Playwr
 ## 免责声明
 
 本工具自动化第三方注册流程。请仅在获得授权的场景使用，并遵守 Cyberouter
-与 tempmail.cloud、CapSolver 的服务条款。作者与这些服务无关联,对误用不承担责任。
+与 BlipMail、CapSolver 的服务条款。作者与这些服务无关联,对误用不承担责任。
 
 ## 许可证
 

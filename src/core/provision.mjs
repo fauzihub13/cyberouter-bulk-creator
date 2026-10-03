@@ -1,16 +1,16 @@
 /**
  * Core provisioning flow: one Cyberouter account + one API key, end-to-end.
  *
- * The temporary inbox is created and polled over tempmail.cloud's JSON API
- * through a Playwright `APIRequestContext` (shared cookie jar + proxy), while
- * the Cyberouter session is driven in a browser context. The Cloudflare
- * Turnstile challenge is solved with CapSolver.
+ * The temporary inbox is created and polled over BlipMail's JSON API through
+ * a Playwright `APIRequestContext` (shared cookie jar + proxy), while the
+ * Cyberouter session is driven in a browser context. The Cloudflare Turnstile
+ * challenge is solved with CapSolver.
  *
  * @module core/provision
  */
 
 import * as cyber from "../cyberouter/client.mjs";
-import { createInbox, waitForCode } from "../inbox/tempmail.mjs";
+import { createInbox, waitForCode } from "../inbox/blipmail.mjs";
 import { randomKeyName } from "../utils/random.mjs";
 import { log, color } from "../utils/logger.mjs";
 
@@ -45,13 +45,13 @@ async function attempt(platformContext, request, opts, attemptNo) {
       domain: opts.domain || undefined,
       localPart: opts.localPart || undefined,
     });
-    const { email, domain, token } = inbox;
+    const { email, domain } = inbox;
     const tryLabel = attemptNo > 1 ? color.yellow(`try ${attemptNo}`) : color.cyan("try 1");
     log.step(`${tryLabel} ${color.dim("provisioning")} ${color.white(email)}`);
 
     await cyber.requestCode(platformPage, email, opts);
 
-    const code = await waitForCode(request, token, { timeout: opts.timeout });
+    const code = await waitForCode(request, email, { timeout: opts.timeout });
     log.ok(`${color.dim("code received")} ${color.bold(color.green(code))}`);
 
     await cyber.submitCode(platformPage, email, code);
@@ -62,7 +62,7 @@ async function attempt(platformContext, request, opts, attemptNo) {
       email,
       api_key: apiKey,
       key_name: keyName,
-      email_provider: `tempmail.cloud (${domain})`,
+      email_provider: `blipmail (${domain})`,
       elapsed_ms: Date.now() - started,
       created_at: new Date().toISOString(),
     };

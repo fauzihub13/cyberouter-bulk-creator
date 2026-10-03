@@ -4,7 +4,7 @@
 
 # cyberouter-bulk-creator
 
-**Pembuatan massal akun & API key [Cyberouter](https://router.enclave.ai) (router.enclave.ai) secara end-to-end, diverifikasi lewat inbox sementara [tempmail.cloud](https://tempmail.cloud), dengan tantangan Cloudflare Turnstile dipecahkan oleh [CapSolver](https://capsolver.com).**
+**Pembuatan massal akun & API key [Cyberouter](https://router.enclave.ai) (router.enclave.ai) secara end-to-end, diverifikasi lewat inbox sementara [BlipMail](https://blipmail.mpruy.my.id), dengan tantangan Cloudflare Turnstile dipecahkan oleh [CapSolver](https://capsolver.com).**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-38e1ff.svg?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-8b5cff.svg?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
@@ -23,7 +23,7 @@
 
 Satu perintah membuat akun Cyberouter beserta API key, dari awal hingga akhir:
 
-1. Membuat email sementara baru di **tempmail.cloud** (lewat JSON API-nya).
+1. Membuat email sementara baru di **BlipMail** (lewat JSON API-nya).
 2. Memecahkan Cloudflare Turnstile Cyberouter dengan **CapSolver**.
 3. Meminta kode masuk dari **Cyberouter**.
 4. Membaca kode dari inbox sementara tadi.
@@ -58,10 +58,10 @@ Hasil tersimpan di `cyberouter-accounts-<timestamp>.json`:
 [
   {
     "ok": true,
-    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "email": "langitbiru23@mpruy.my.id",
     "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "key_name": "prod-token-7421",
-    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "email_provider": "BlipMail (mpruy.my.id)",
     "elapsed_ms": 19579,
     "created_at": "2026-10-03T00:00:00.000Z"
   }
@@ -76,10 +76,10 @@ Akun yang berhasil juga di-append, begitu dibuat, ke dua file permanen
 ```json
 [
   {
-    "email": "bright.7b06a5@digital.tempmail.cloud",
+    "email": "langitbiru23@mpruy.my.id",
     "api_key": "sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "key_name": "prod-token-7421",
-    "email_provider": "tempmail.cloud (digital.tempmail.cloud)",
+    "email_provider": "BlipMail (mpruy.my.id)",
     "created_at": "2026-10-03T00:00:00.000Z"
   }
 ]
@@ -88,7 +88,7 @@ Akun yang berhasil juga di-append, begitu dibuat, ke dua file permanen
 `results.txt` — satu baris `email|api_key` per sukses:
 
 ```
-bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+langitbiru23@mpruy.my.id|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ## CLI
@@ -96,7 +96,7 @@ bright.7b06a5@digital.tempmail.cloud|sk-cyberouter_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | Flag | Keterangan | Default |
 |------|------------|---------|
 | `-n, --count N` | jumlah akun | `1` |
-| `-d, --domain D` | domain penerima tempmail | default tempmail |
+| `-d, --domain D` | domain penerima blipmail | default blipmail |
 | `-o, --out FILE` | file JSON keluaran | `cyberouter-accounts-<ts>.json` |
 | `--results-json FILE` | append akun sukses (array JSON) | `results.json` |
 | `--results-txt FILE` | append `email\|api_key` tiap sukses | `results.txt` |
@@ -136,7 +136,7 @@ CYBEROUTER_PROXY=
 |-----------|--------|------------|
 | **Turnstile di Cyberouter** | widget `execute` deferred tak pernah selesai; submit tak terjadi | Dipecahkan via CapSolver, token disuntik ke `cf-turnstile-response` |
 | **Waktu submit** | context hancur saat submit | Submit pada tick berikutnya agar evaluate penyuntikan selesai dulu |
-| **Email lambat** | kode tak kunjung tiba | Polling berbatas ke API tempmail.cloud dengan error `mail-timeout` |
+| **Email lambat** | kode tak kunjung tiba | Polling berbatas ke API BlipMail dengan error `mail-timeout` |
 | **Kode kedaluwarsa** | "invalid or expired" | Ditandai `code-expired`, dicoba ulang dengan inbox baru |
 | **Batas laju** | HTTP 429 / "too many" | Ditandai `rate-limit`, dihentikan (retry tak membantu) |
 | **Proxy bocor** | request melewati proxy | Proxy dipasang di context browser; API inbox ikut memakainya |
@@ -160,13 +160,13 @@ Repositori ini sengaja minimal:
 
 ## FAQ
 
-**Domain tempmail mana yang bekerja?**
-Semua domain penerima aktif tempmail.cloud bekerja; email Cyberouter dikirim ke
+**Domain blipmail mana yang bekerja?**
+Semua domain penerima aktif BlipMail bekerja; email Cyberouter dikirim ke
 domain yang ditetapkan layanan. Pin satu domain dengan `-d`/`--domain` hanya
 bila perlu.
 
 **Kenapa dua context untuk satu tugas?**
-Sesi Cyberouter dan API tempmail.cloud diisolasi: API inbox berjalan lewat
+Sesi Cyberouter dan API BlipMail diisolasi: API inbox berjalan lewat
 `APIRequestContext` Playwright yang berbagi proxy keluar tetapi bukan cookie
 jar Cyberouter. Karena itu `--concurrency` membuat context platform terpisah.
 
@@ -180,7 +180,7 @@ itu (sudah di-git-ignore).
 ## Penafian
 
 Alat ini mengotomatiskan alur pendaftaran pihak ketiga. Gunakan hanya di tempat
-Anda berwenang, sesuai ketentuan Cyberouter, tempmail.cloud, dan CapSolver.
+Anda berwenang, sesuai ketentuan Cyberouter, BlipMail, dan CapSolver.
 Penulis tidak berafiliasi dengan layanan mana pun dan tidak bertanggung jawab
 atas penyalahgunaan.
 

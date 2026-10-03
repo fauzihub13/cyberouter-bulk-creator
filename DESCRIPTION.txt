@@ -4,13 +4,13 @@ cyberouter-bulk-creator
 GitHub repository description (paste into the "Description" field):
 
     Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts
-    and API keys through tempmail.cloud temporary inboxes, with CapSolver for the
+    and API keys through BlipMail temporary inboxes, with CapSolver for the
     Cloudflare Turnstile challenge. Playwright-driven, no CI.
 
 Short description (<= 350 chars, fits GitHub):
 
     Bulk-provision Cyberouter (router.enclave.ai) accounts + sk-cyberouter API
-    keys end to end, using tempmail.cloud for email verification and CapSolver
+    keys end to end, using BlipMail for email verification and CapSolver
     for Turnstile. Real browser via Playwright. No CI, no roadmap, no releases.
 
 Topics (paste into "Topics", one per line or comma-separated):
@@ -23,7 +23,7 @@ Topics (paste into "Topics", one per line or comma-separated):
     api-key
     account-creator
     temporary-email
-    tempmail
+    blipmail
     capsolver
     turnstile
     playwright

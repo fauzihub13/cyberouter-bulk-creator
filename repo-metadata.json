@@ -1,6 +1,6 @@
 {
   "name": "cyberouter-bulk-creator",
-  "description": "Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and API keys through tempmail.cloud temporary inboxes and CapSolver for Cloudflare Turnstile. Playwright-driven, MIT, no CI.",
+  "description": "Bulk, end-to-end provisioning of Cyberouter (router.enclave.ai) accounts and API keys through BlipMail temporary inboxes and CapSolver for Cloudflare Turnstile. Playwright-driven, MIT, no CI.",
   "topics": [
     "cyberouter",
     "enclave",
@@ -10,7 +10,7 @@
     "api-key",
     "account-creator",
     "temporary-email",
-    "tempmail",
+    "blipmail",
     "capsolver",
     "turnstile",
     "playwright",
